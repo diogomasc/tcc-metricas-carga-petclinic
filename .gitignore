@@ -1,0 +1,94 @@
+# ==============================================================================
+# Git Ignore - TCC Métricas de Carga PetClinic REST
+# ==============================================================================
+
+# ── Java & Maven ──────────────────────────────────────────────────────────────
+target/
+**/target/
+*.class
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+
+# Maven wrapper / generated
+generated/
+**/generated/
+.factorypath
+**/.factorypath
+.java-version
+**/.java-version
+.tool-versions
+**/.tool-versions
+src/test/postman/reports/
+**/src/test/postman/reports/**
+springboot-petclinic-client/
+springboot-petclinic-server/
+
+# ── Python, Virtual Environments & Jupyter ────────────────────────────────────
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+.env
+**/.env
+.venv/
+**/.venv/
+env/
+**/env/
+venv/
+**/venv/
+ENV/
+**/ENV/
+env.bak/
+venv.bak/
+
+.ipynb_checkpoints
+**/.ipynb_checkpoints/
+
+# Pytest / Coverage
+.pytest_cache/
+**/.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ── Resultados Brutos de Testes de Carga & Dados Pesados ──────────────────────
+# Diretórios de métricas brutas volumosas geradas pelo K6 (>100MB / gigabytes)
+data/k6/
+**/data/k6/
+**/data/k6/**
+infra/results/
+results/
+tmp/
+*.log
+
+# ── IDEs & Editores ───────────────────────────────────────────────────────────
+.idea/
+**/.idea/
+*.iml
+**/*.iml
+.vscode/
+**/.vscode/
+.settings/
+**/.settings/
+.classpath
+**/.classpath
+.project
+**/.project
+.pydevproject
+**/.pydevproject
+*.swp
+*.swo
+
+# ── Arquivos do Sistema Operacional ───────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

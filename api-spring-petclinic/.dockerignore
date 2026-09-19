@@ -1,0 +1,27 @@
+# ── Artefatos de build ────────────────────────────────────────────────────────
+# O target/ nunca deve entrar no contexto: o próprio builder gera o jar dentro da imagem.
+target/
+
+# ── Controle de versão ───────────────────────────────────────────────────────
+.git/
+.gitignore
+.github/
+
+# ── Documentação e assets ────────────────────────────────────────────────────
+*.md
+docs/
+*.png
+*.txt
+
+# ── IntelliJ IDEA ────────────────────────────────────────────────────────────
+.idea/
+*.iml
+
+# ── Maven Wrapper (não necessário dentro do container) ───────────────────────
+# O builder usa o Maven instalado na imagem maven:3.9.9-eclipse-temurin-21.
+.mvn/
+mvnw
+mvnw.cmd
+
+# ── Editor / OS ──────────────────────────────────────────────────────────────
+.editorconfig

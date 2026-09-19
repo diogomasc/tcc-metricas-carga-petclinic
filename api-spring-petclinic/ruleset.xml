@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PMD Ruleset – Mapeamento ISO 25010 (Manutenibilidade / Confiabilidade)
+  ======================================================================
+  Projeto : Spring PetClinic REST – Análise Estática para TCC
+  Escopo  : Métricas microestruturais de code smells e complexidade.
+  PMD     : Compatível com PMD 7.x (regras legacy removidas substituídas por XPath)
+
+  Mapeamento Code-Smell → Regra PMD:
+  ┌───────────────────────────────┬────────────────────────────────────────────┐
+  │ Métrica / Smell               │ Regra PMD                                  │
+  ├───────────────────────────────┼────────────────────────────────────────────┤
+  │ God Class                     │ GodClass                                   │
+  │ Long Method                   │ ExcessiveMethodLength (XPath) + NcssCount  │
+  │ Feature Envy                  │ LawOfDemeter                               │
+  │ Data Class                    │ DataClass                                  │
+  │ Complexidade Ciclomática (CC) │ CyclomaticComplexity                       │
+  │ Coupling Between Objects (CBO)│ CouplingBetweenObjects                     │
+  │ Lines of Code (LOC)           │ ExcessiveClassLength (XPath)               │
+  └───────────────────────────────┴────────────────────────────────────────────┘
+-->
+<ruleset name="ISO25010-PetClinic-Ruleset"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+                             https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        Ruleset alinhado à ISO 25010 para detecção de code smells e métricas
+        de complexidade/acoplamento no Spring PetClinic REST.
+        Compatível com PMD 7.x – regras ExcessiveMethodLength e ExcessiveClassLength
+        foram removidas no PMD 7 e reimplementadas via XPath customizado.
+    </description>
+
+    <!-- Exclui código gerado pelo OpenAPI Generator -->
+    <exclude-pattern>.*/target/generated-sources/.*</exclude-pattern>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         1. GOD CLASS
+         Detecta classes com excesso de responsabilidades (WMC, ATFD, TCC).
+         ════════════════════════════════════════════════════════════════════ -->
+    <rule ref="category/java/design.xml/GodClass" />
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         2. LONG METHOD (componente semântico)
+         NcssCount: Non-Commenting Source Statements.
+         Substitui ExcessiveMethodLength no PMD 7.x.
+         ════════════════════════════════════════════════════════════════════ -->
+    <rule ref="category/java/design.xml/NcssCount">
+        <properties>
+            <property name="methodReportLevel" value="40" />
+            <property name="classReportLevel"  value="500" />
+        </properties>
+    </rule>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         2b. LONG METHOD (componente bruto – LOC por método)
+         Regra XPath customizada: detecta métodos com mais de 50 linhas.
+         Reimplementação do ExcessiveMethodLength removido no PMD 7.
+         ════════════════════════════════════════════════════════════════════ -->
+    <rule name="ExcessiveMethodLength"
+          language="java"
+          message="Método com {0} linhas excede o limiar de 50 (Long Method)"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            Detecta métodos excessivamente longos (> 50 linhas brutas).
+            Proxy para o code smell "Long Method" (ISO 25010 – Analisabilidade).
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+<![CDATA[
+//MethodDeclaration[@EndLine - @BeginLine > 50]
+]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         3. FEATURE ENVY (proxy: Law of Demeter)
+         Detecta cadeias de chamadas que indicam inveja de funcionalidade.
+         ════════════════════════════════════════════════════════════════════ -->
+    <rule ref="category/java/design.xml/LawOfDemeter" />
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         4. DATA CLASS
+         Detecta classes que só expõem getters/setters sem comportamento.
+         ════════════════════════════════════════════════════════════════════ -->
+    <rule ref="category/java/design.xml/DataClass" />
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         5. COMPLEXIDADE CICLOMÁTICA (CC)
+         Limiar reportLevel = 10 (ISO 25010 – Manutenibilidade: Analisabilidade)
+         ════════════════════════════════════════════════════════════════════ -->
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="classReportLevel"  value="80" />
+            <property name="methodReportLevel" value="10" />
+        </properties>
+    </rule>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         6. COUPLING BETWEEN OBJECTS (CBO)
+         Mede o número de tipos distintos referenciados por uma classe.
+         ════════════════════════════════════════════════════════════════════ -->
+    <rule ref="category/java/design.xml/CouplingBetweenObjects">
+        <properties>
+            <property name="threshold" value="20" />
+        </properties>
+    </rule>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         7. LINES OF CODE (LOC) – Excessive Class Length
+         Regra XPath customizada: detecta classes com mais de 300 linhas.
+         Reimplementação do ExcessiveClassLength removido no PMD 7.
+         Proxy para tamanho da classe (ISO 25010 – Modularidade).
+         ════════════════════════════════════════════════════════════════════ -->
+    <rule name="ExcessiveClassLength"
+          language="java"
+          message="Classe com {0} linhas excede o limiar de 300 (LOC)"
+          class="net.sourceforge.pmd.lang.rule.xpath.XPathRule">
+        <description>
+            Detecta classes excessivamente longas (> 300 linhas brutas).
+            Proxy para LOC (ISO 25010 – Modularidade e Analisabilidade).
+        </description>
+        <priority>3</priority>
+        <properties>
+            <property name="xpath">
+                <value>
+<![CDATA[
+//TypeDeclaration[@EndLine - @BeginLine > 300]
+]]>
+                </value>
+            </property>
+        </properties>
+    </rule>
+
+</ruleset>

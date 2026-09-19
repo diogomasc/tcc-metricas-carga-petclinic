@@ -1,0 +1,87 @@
+# ── API Spring PetClinic REST ─────────────────────────────────────────────────
+#
+# Uso:
+#   docker compose up -d          → sobe a API (cria a rede tcc-api-net)
+#   docker compose down           → derruba e descarta o container (H2 limpo)
+#   docker compose up --build -d  → rebuild da imagem + sobe
+#
+# Nota: restart: "no" é intencional — garante reinício MANUAL para validar
+# o comportamento do H2 em memória (banco limpo a cada novo `up`).
+
+services:
+
+  petclinic-api:
+    build: .
+    container_name: petclinic-api
+    environment:
+      # ── Perfis Spring ─────────────────────────────────────────────────────────────
+      # Profile h2 → banco em memória, limpo a cada reinício do container.
+      # spring-data-jpa → camada de repositório padrão do projeto.
+      SPRING_PROFILES_ACTIVE: h2,spring-data-jpa
+
+      # ── Porta ─────────────────────────────────────────────────────────────────────
+      # Porta padrão do application.properties. Sobrescreva para 8080 se necessário.
+      SERVER_PORT: 9966
+
+      # ── Tomcat: limites de threads e conexões ─────────────────────────────────────
+      # Torna o comportamento determinístico entre execuções K6:
+      # a latência observada no Grafana reflete o custo real do código
+      # (N+1, EAGER, cascade) e não contenção de fila do Tomcat.
+      SERVER_TOMCAT_THREADS_MAX: "200"
+      SERVER_TOMCAT_ACCEPT_COUNT: "200"
+      # Timeout de conexão (ms). Requisições lentas não ficam presas indefinidamente,
+      # o que evitaria distorção nas métricas de latência do Grafana.
+      SERVER_TOMCAT_CONNECTION_TIMEOUT: "5000"
+
+      # ── Spring Boot Actuator: exposição restrita ───────────────────────────────────
+      # Expõe apenas os endpoints necessários para Prometheus + healthcheck.
+      # Mantém /actuator/shutdown DESABILITADO para evitar derrubada acidental
+      # da API durante um teste K6 em andamento.
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,prometheus,metrics"
+      MANAGEMENT_ENDPOINT_SHUTDOWN_ENABLED: "false"
+  
+      # ── JVM: memória + GC + logging ────────────────────────────────────────────────
+      # -Xms128m -Xmx384m : limites de memória alinhados com deploy.resources.
+      # -XX:+UseG1GC       : força G1GC explicitamente — com heaps pequenos (~384m)
+      #   a JVM pode escolher Serial GC (DefNew+Tenured), que é menos informativo
+      #   nos dashboards Grafana. G1GC expõe métricas por região (Eden/Survivor/Old)
+      #   e emite logs como: GC(n) Pause Young (Normal) (G1 Evacuation Pause) Xm->Ym Zms
+      # -Xlog:gc*:stdout:time,uptime,level : logs Stop-the-World no stdout,
+      #   correlacionáveis com spikes de latência P99 no Grafana.
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+UseG1GC -Xlog:gc*:stdout:time,uptime,level"
+
+      # ── Timezone ───────────────────────────────────────────────────────────────────
+      # Alinha os timestamps dos logs do container com os dashboards Grafana locais.
+      TZ: "America/Bahia"
+
+    ports:
+      - "9966:9966"
+    networks:
+      - tcc-api-net
+    # Sem restart automático: reinício deve ser manual para garantir H2 limpo.
+    restart: "no"
+    deploy:
+      resources:
+        limits:
+          memory: "1G"
+          cpus: "2.0"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
+    storage_opt:
+      size: "2G"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9966/petclinic/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+# ── Rede compartilhada com a infra de observabilidade ────────────────────────
+# O docker-compose.infra.yml do repo infra-refactoring-metrics referencia
+# esta rede como external para Prometheus e K6 alcançarem o container pelo
+# hostname 'petclinic-api'.
+networks:
+  tcc-api-net:
+    name: tcc-api-net
+    driver: bridge
